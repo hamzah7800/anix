@@ -3,9 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My App</title>
+    <!-- Prevents browser favicon 404 console errors -->
+    <link rel="icon" href="data:,">
+    <title>CineStream Dashboard</title>
+    <!-- Tailwind CSS for sleek dark-mode styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for modern UI elements -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
 </head>
-<body>
-    <h1>Hello World! This is my frontend!</h1>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
+            <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+                <i data-lucide="clapperboard" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">CineStream</h1>
+                <p class="text-xs text-indigo-400 font-medium tracking-wider uppercase">MAL & Media Hub</p>
+            </div>
+        </div>
+
+        <!-- Media Segment Selection Controls -->
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+            <button id="toggle-tv" onclick="switchMediaType('tv')" class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-indigo-600 text-white shadow-md">
+                <i data-lucide="tv" class="w-4 h-4"></i> Anime (MAL)
+            </button>
+            <button id="toggle-movie" onclick="switchMediaType('movie')" class="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200">
+                <i data-lucide="film" class="w-4 h-4"></i> Movies (TMDB)
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 lg:p-8 max-w-[1920px] w-full mx-auto">
+        
+        <!-- Left Sidebar: Catalog Listing View -->
+        <section class="lg:col-span-4 xl:col-span-3 flex flex-col gap-4 order-2 lg:order-1">
+            <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h2 id="catalog-title" class="font-semibold text-slate-200 flex items-center gap-2">
+                        <i data-lucide="layout-list" class="w-4 h-4 text-indigo-400"></i> Featured Anime
+                    </h2>
+                    <span id="catalog-count" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full font-mono">4 items</span>
+                </div>
+
+                <!-- Catalog Add custom media trigger -->
+                <button onclick="openModal()" class="w-full py-2.5 px-4 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/80 rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-3.5 h-3.5 text-indigo-400"></i> Add Custom ID
+                </button>
+
+                <!-- Scrollable Media Content Cards Group -->
+                <div id="catalog-container" class="space-y-3 max-h-[58vh] overflow-y-auto custom-scrollbar pr-1">
+                    <!-- Javascript populates items dynamically inside this shell container -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Core View: Main Cinematic Player Module -->
+        <section class="lg:col-span-8 xl:col-span-9 flex flex-col gap-6 order-1 lg:order-2">
+            
+            <!-- Video Streaming View Frame Wrapper -->
+            <div class="relative bg-black rounded-2xl border border-slate-800 aspect-video w-full overflow-hidden shadow-2xl shadow-black/40 group">
+                <!-- Sandbox has been completely removed below to prevent "Iframe Sandbox Detected" blocks -->
+                <iframe 
+                    id="stream-player"
+                    src="" 
+                    class="w-full h-full absolute inset-0 bg-black"
+                    allowfullscreen
+                    scrolling="no"
+                    allow="autoplay; encrypted-media; picture-in-picture">
+                </iframe>
+                
+                <!-- Splash Loading & Selection Intermediary Backdrop UI -->
+                <div id="player-placeholder" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center transition-all duration-300 z-10 pointer-events-none">
+                    <div class="w-16 h-16 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400 animate-pulse mb-4">
+                        <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-slate-200">No Target File Selected</h3>
+                    <p class="text-sm text-slate-400 mt-1 max-w-sm">Select an option from the catalog playlist to establish a connection stream.</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Media Information & Dynamic Parameter Router Controls -->
+            <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 space-y-6">
+                
+                <!-- Dynamic Meta Info Row -->
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-slate-800/60 pb-6">
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <h2 id="active-title" class="text-2xl font-bold tracking-tight text-white">Select Media Asset</h2>
+                            <span id="active-badge" class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs px-2.5 py-0.5 rounded-md font-medium font-mono hidden">Anime</span>
+                        </div>
+                        <p id="active-desc" class="text-sm text-slate-400 max-w-3xl leading-relaxed">Choose an available title from the library collection to parse metadata properties and activate the player interface.</p>
+                    </div>
+                    
+                    <div id="active-meta-stats" class="flex items-center gap-3 shrink-0 opacity-0 transition-opacity duration-300">
+                        <button onclick="compileRoutingPayload()" class="bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-white px-3 py-2.5 border border-slate-800/80 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition" title="Reload Connection Node">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Reset Link
+                        </button>
+                        <div class="bg-slate-950 px-3 py-2 border border-slate-800/80 rounded-xl text-center min-w-[70px]">
+                            <span id="id-label-type" class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">MAL ID</span>
+                            <span id="meta-id-display" class="text-sm font-semibold text-slate-200">--</span>
+                        </div>
+                        <div class="bg-slate-950 px-3 py-2 border border-slate-800/80 rounded-xl text-center min-w-[70px]">
+                            <span class="block text-[10px] text-yellow-500/80 font-bold uppercase tracking-wider">Rating</span>
+                            <span id="meta-rating" class="text-sm font-semibold text-yellow-400 flex items-center justify-center gap-0.5"><i data-lucide="star" class="w-3 h-3 fill-current"></i> --</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premium Ad-Free Gateways -->
+                <div class="space-y-3">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 block flex items-center gap-2">
+                        <i data-lucide="server" class="w-3.5 h-3.5 text-indigo-400"></i> Premium Gateways (No Ads + English CC)
+                    </label>
+                    <div id="server-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                        <!-- Javascript maps cluster button elements here -->
+                    </div>
+                </div>
+
+                <!-- Episode & Season Navigation Stepper Controller -->
+                <div id="episodic-router-panel" class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-4 hidden transition-all duration-300">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i>
+                            <h4 class="text-sm font-medium text-slate-300">Target Episode Coordinates</h4>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-6">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-slate-400 font-medium">Season</span>
+                                <div class="flex items-center bg-slate-900 border border-slate-700/60 rounded-lg overflow-hidden focus-within:border-indigo-500">
+                                    <button onclick="adjustEpisodicValue('season', -1)" class="p-2 hover:bg-slate-800 transition text-slate-400 hover:text-white"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                                    <input type="number" id="input-season" min="1" value="1" onchange="handleDirectInput('season', this.value)" class="w-12 bg-transparent text-center text-sm font-mono font-bold text-indigo-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                    <button onclick="adjustEpisodicValue('season', 1)" class="p-2 hover:bg-slate-800 transition text-slate-400 hover:text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-slate-400 font-medium">Episode</span>
+                                <div class="flex items-center bg-slate-900 border border-slate-700/60 rounded-lg overflow-hidden focus-within:border-indigo-500">
+                                    <button onclick="adjustEpisodicValue('episode', -1)" class="p-2 hover:bg-slate-800 transition text-slate-400 hover:text-white"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                                    <input type="number" id="input-episode" min="1" value="1" onchange="handleDirectInput('episode', this.value)" class="w-12 bg-transparent text-center text-sm font-mono font-bold text-indigo-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                    <button onclick="adjustEpisodicValue('episode', 1)" class="p-2 hover:bg-slate-800 transition text-slate-400 hover:text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="adjustEpisodicValue('episode', 1)" class="w-full sm:w-auto px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold tracking-wide transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10">
+                            Next Episode <i data-lucide="skip-forward" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Form Component for Adding Custom Items -->
+    <div id="add-media-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[100] px-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative space-y-4">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <div>
+                <h3 id="modal-title-text" class="text-lg font-bold text-white">Add Custom Anime</h3>
+                <p id="modal-desc-text" class="text-xs text-slate-400 mt-0.5">Input a MyAnimeList (MAL) ID to load its metadata.</p>
+            </div>
+            <form onsubmit="handleModalSubmit(event)" class="space-y-4">
+                <div class="space-y-1.5">
+                    <label id="modal-label-text" class="text-[10px] font-bold tracking-wide uppercase text-slate-400">MyAnimeList ID</label>
+                    <input id="modal-media-id" type="number" placeholder="e.g. 38474 (Jujutsu Kaisen)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 font-mono text-indigo-400">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold tracking-wide uppercase text-slate-400">Fallback Title (If API is busy)</label>
+                    <input id="modal-name" type="text" placeholder="e.g. My Custom Show" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 text-slate-200">
+                </div>
+                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold tracking-wide transition shadow-lg shadow-indigo-600/20">
+                    Import Asset Metadata
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Configuration Logic & Routing Engine Module Scripts -->
+    <script>
+        // Updated configuration utilizing Jikan (MAL) & Upgraded clean media gateways
+        const APP_CONFIG = {
+            PRE_CACHED_ANIME: [
+                { id: 38474, name: "Jujutsu Kaisen", backup_poster: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=400", year: "2020", rating: 8.7, desc: "A boy swallows a cursed talisman - the finger of a demon - and enters a shaman's school to exorcise himself." },
+                { id: 16498, name: "Attack on Titan S4", backup_poster: "https://images.unsplash.com/photo-1560169897-fc0cdbdfa4d5?q=80&w=400", year: "2013", rating: 8.9, desc: "Humanity is forced to live inside giant walled cities due to the appearance of massive, human-eating Titans." },
+                { id: 38000, name: "Demon Slayer", backup_poster: "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=400", year: "2019", rating: 8.7, desc: "Kindhearted Tanjiro sets out on a dangerous quest to find a cure for his sister who was turned into a demon." },
+                { id: 38691, name: "Dr. STONE", backup_poster: "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400", year: "2019", rating: 8.5, desc: "Thousands of years after humanity is turned to stone, a genius high-schooler uses science to rebuild civilization." }
+            ],
+            PRE_CACHED_MOVIES: [
+                { id: 157336, name: "Interstellar", backup_poster: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=400", year: "2014", rating: 8.4, desc: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival." },
+                { id: 27205, name: "Inception", backup_poster: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=400", year: "2010", rating: 8.4, desc: "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea." }
+            ],
+            // Clean premium gateways with built-in English and CC support
+            GATEWAY_PROVIDERS: [
+                { name: "VidLink (Fastest)", base: "https://vidlink.pro", tvPattern: "/tv/{id}/{s}/{e}", moviePattern: "/movie/{id}" },
+                { name: "Embed.su (Multi-sub)", base: "https://embed.su", tvPattern: "/api/tv/{id}/{s}/{e}", moviePattern: "/api/movie/{id}" },
+                { name: "VidEasy (Lightweight)", base: "https://player.videasy.net", tvPattern: "/tv/{id}/{s}/{e}", moviePattern: "/movie/{id}" }
+            ]
+        };
+
+        // Execution Context Application State
+        let currentType = 'tv'; // TV Mode represents Jikan (Anime); Movies represent TMDB
+        let activeMediaItem = null;
+        let selectedServerIndex = 0;
+        let currentSeason = 1;
+        let currentEpisode = 1;
+
+        // Bootstrapping initialization sequence routine
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderCatalogList();
+            renderServerGrid();
+        });
+
+        // Toggles active context environment
+        function switchMediaType(type) {
+            if (currentType === type) return;
+            currentType = type;
+            
+            activeMediaItem = null;
+            currentSeason = 1;
+            currentEpisode = 1;
+            
+            // Sync episodic coordinates DOM state
+            document.getElementById('input-season').value = currentSeason;
+            document.getElementById('input-episode').value = currentEpisode;
+
+            // DOM styling updates for control buttons
+            const tvBtn = document.getElementById('toggle-tv');
+            const movieBtn = document.getElementById('toggle-movie');
+            
+            if (type === 'tv') {
+                tvBtn.className = "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-indigo-600 text-white shadow-md";
+                movieBtn.className = "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                document.getElementById('catalog-title').innerHTML = `<i data-lucide="tv" class="w-4 h-4 text-indigo-400"></i> Featured Anime`;
+                document.getElementById('episodic-router-panel').classList.remove('hidden');
+                document.getElementById('id-label-type').innerText = "MAL ID";
+            } else {
+                movieBtn.className = "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-indigo-600 text-white shadow-md";
+                tvBtn.className = "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200";
+                document.getElementById('catalog-title').innerHTML = `<i data-lucide="film" class="w-4 h-4 text-indigo-400"></i> Featured Movies`;
+                document.getElementById('episodic-router-panel').classList.add('hidden');
+                document.getElementById('id-label-type').innerText = "TMDB ID";
+            }
+
+            // Flush out iframe and set baseline states
+            document.getElementById('stream-player').src = "";
+            document.getElementById('player-placeholder').classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('active-badge').classList.add('hidden');
+            document.getElementById('active-meta-stats').classList.add('opacity-0');
+            document.getElementById('active-title').innerText = "Select Media Asset";
+            document.getElementById('active-desc').innerText = "Choose an available title from the library collection to parse metadata properties and activate the player interface.";
+
+            renderCatalogList();
+            lucide.createIcons();
+        }
+
+        // Maps data loops directly into structural sidebar component listings
+        function renderCatalogList() {
+            const container = document.getElementById('catalog-container');
+            const collection = currentType === 'tv' ? APP_CONFIG.PRE_CACHED_ANIME : APP_CONFIG.PRE_CACHED_MOVIES;
+            
+            document.getElementById('catalog-count').innerText = `${collection.length} items`;
+            container.innerHTML = "";
+
+            collection.forEach(item => {
+                const isActive = activeMediaItem && activeMediaItem.id === item.id;
+                const card = document.createElement('button');
+                card.className = `w-full text-left p-3 rounded-xl border transition-all duration-200 flex gap-3 items-center group/card ${
+                    isActive 
+                    ? 'bg-indigo-600/10 border-indigo-500 text-white shadow-lg shadow-indigo-500/5 font-semibold' 
+                    : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700'
+                }`;
+                card.onclick = () => selectMediaAsset(item);
+
+                card.innerHTML = `
+                    <div class="w-12 h-16 rounded-lg bg-cover bg-center shrink-0 bg-slate-800 border border-slate-700/50 shadow-inner shadow-black/40 group-hover/card:scale-105 transition" style="background-image: url('${item.backup_poster}')"></div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-medium text-sm truncate ${isActive ? 'text-indigo-400' : 'text-slate-200 group-hover/card:text-white'}">${item.name}</h4>
+                        <div class="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                            <span class="font-mono">${item.year}</span>
+                            <span class="w-1 h-1 bg-slate-700 rounded-full"></span>
+                            <span class="text-yellow-500 flex items-center gap-0.5"><i data-lucide="star" class="w-3 h-3 fill-current"></i> ${item.rating}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // Formats network routing arrays into selection interfaces
+        function renderServerGrid() {
+            const grid = document.getElementById('server-grid');
+            grid.innerHTML = "";
+
+            APP_CONFIG.GATEWAY_PROVIDERS.forEach((srv, index) => {
+                const isSelected = selectedServerIndex === index;
+                const btn = document.createElement('button');
+                btn.className = `p-3 rounded-xl border text-left transition flex items-center justify-between group ${
+                    isSelected 
+                    ? 'bg-gradient-to-r from-slate-900 to-slate-950 border-indigo-500 text-white shadow-md' 
+                    : 'bg-slate-900/30 border-slate-800/80 text-slate-400 hover:bg-slate-900/60 hover:text-slate-200'
+                }`;
+                btn.onclick = () => selectNetworkNode(index);
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-2 h-2 rounded-full shadow-sm animate-pulse ${isSelected ? 'bg-emerald-400 shadow-emerald-400/50' : 'bg-slate-600'}"></div>
+                        <span class="text-sm font-medium truncate ${isSelected ? 'text-slate-200' : ''}">${srv.name}</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 shrink-0 transition group-hover:translate-x-0.5 ${isSelected ? 'text-indigo-400' : 'text-slate-600'}"></i>
+                `;
+                grid.appendChild(btn);
+            });
+            lucide.createIcons();
+        }
+
+        // Logic sequence mapping to process a chosen catalog component (incorporating Jikan API dynamically)
+        async function selectMediaAsset(item) {
+            activeMediaItem = item;
+            
+            // Remove splash mask state elements
+            document.getElementById('player-placeholder').classList.add('opacity-0', 'pointer-events-none');
+            
+            // Pop out current details inside metadata containers
+            document.getElementById('active-title').innerText = item.name;
+            document.getElementById('active-desc').innerText = item.desc;
+            document.getElementById('meta-id-display').innerText = item.id;
+            document.getElementById('meta-rating').innerHTML = `<i data-lucide="star" class="w-3 h-3 fill-current"></i> ${item.rating}`;
+            
+            const badge = document.getElementById('active-badge');
+            badge.innerText = currentType === 'tv' ? 'ANIME' : 'MOVIE';
+            badge.classList.remove('hidden');
+            document.getElementById('active-meta-stats').classList.remove('opacity-0');
+
+            if (currentType === 'tv') {
+                document.getElementById('episodic-router-panel').classList.remove('hidden');
+                // Dynamically pull fresh Jikan API details for perfect accuracy on select
+                try {
+                    const res = await fetch(`https://api.jikan.moe/v4/anime/${item.id}`);
+                    if (res.ok) {
+                        const resData = await res.json();
+                        const anime = resData.data;
+                        document.getElementById('active-title').innerText = anime.title_english || anime.title;
+                        document.getElementById('active-desc').innerText = anime.synopsis || item.desc;
+                        document.getElementById('meta-rating').innerHTML = `<i data-lucide="star" class="w-3 h-3 fill-current"></i> ${anime.score || item.rating}`;
+                        item.name = anime.title_english || anime.title;
+                        item.desc = anime.synopsis || item.desc;
+                        item.rating = anime.score || item.rating;
+                    }
+                } catch (e) {
+                    console.log("Jikan fetch issue or rate limit hit. Using local fallback meta.");
+                }
+            } else {
+                document.getElementById('episodic-router-panel').classList.add('hidden');
+            }
+
+            renderCatalogList(); 
+            compileRoutingPayload();
+        }
+
+        // Swaps target pipeline gateway indexing parameters
+        function selectNetworkNode(index) {
+            selectedServerIndex = index;
+            renderServerGrid();
+            if (activeMediaItem) {
+                compileRoutingPayload();
+            }
+        }
+
+        // Direct keypad coordination processing
+        function handleDirectInput(type, val) {
+            let num = parseInt(val);
+            if (isNaN(num) || num < 1) num = 1;
+            
+            if (type === 'season') {
+                currentSeason = num;
+                document.getElementById('input-season').value = currentSeason;
+            } else {
+                currentEpisode = num;
+                document.getElementById('input-episode').value = currentEpisode;
+            }
+            if (activeMediaItem) {
+                compileRoutingPayload();
+            }
+        }
+
+        // Mutates current state numbers inside targeted coordinates scopes
+        function adjustEpisodicValue(type, amount) {
+            if (type === 'season') {
+                currentSeason = Math.max(1, currentSeason + amount);
+                document.getElementById('input-season').value = currentSeason;
+            } else {
+                currentEpisode = Math.max(1, currentEpisode + amount);
+                document.getElementById('input-episode').value = currentEpisode;
+            }
+            if (activeMediaItem) {
+                compileRoutingPayload();
+            }
+        }
+
+        // Modal triggers
+        function openModal() {
+            const modal = document.getElementById('add-media-modal');
+            const title = document.getElementById('modal-title-text');
+            const desc = document.getElementById('modal-desc-text');
+            const label = document.getElementById('modal-label-text');
+            const input = document.getElementById('modal-media-id');
+
+            if (currentType === 'tv') {
+                title.innerText = "Add Custom Anime";
+                desc.innerText = "Input a MyAnimeList (MAL) ID to load its metadata.";
+                label.innerText = "MyAnimeList ID";
+                input.placeholder = "e.g. 38474 (Jujutsu Kaisen)";
+            } else {
+                title.innerText = "Add Custom Movie";
+                desc.innerText = "Input a TMDB ID to import movie metadata.";
+                label.innerText = "TMDB Movie ID";
+                input.placeholder = "e.g. 157336 (Interstellar)";
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('add-media-modal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+            document.getElementById('modal-media-id').value = "";
+            document.getElementById('modal-name').value = "";
+        }
+
+        // Sideload fetched details dynamically using Jikan (or TMDB fallback)
+        async function handleModalSubmit(event) {
+            event.preventDefault();
+            const id = parseInt(document.getElementById('modal-media-id').value);
+            const fallbackName = document.getElementById('modal-name').value;
+            closeModal();
+
+            let payload = {
+                id: id,
+                name: fallbackName,
+                backup_poster: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400",
+                year: "2026",
+                rating: 7.0,
+                desc: "Sideloaded custom source file payload."
+            };
+
+            if (currentType === 'tv') {
+                // Query Jikan v4 for live metadata
+                try {
+                    const response = await fetch(`https://api.jikan.moe/v4/anime/${id}`);
+                    if (response.ok) {
+                        const resJSON = await response.json();
+                        const anime = resJSON.data;
+                        payload.name = anime.title_english || anime.title || fallbackName;
+                        payload.year = anime.aired?.prop?.from?.year || "2026";
+                        payload.rating = anime.score ? anime.score.toFixed(1) : 7.0;
+                        payload.desc = anime.synopsis || "No database synopsis available.";
+                        if (anime.images?.jpg?.image_url) {
+                            payload.backup_poster = anime.images.jpg.image_url;
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Jikan database lookup failed. Proceeding with manual fallback parameters.");
+                }
+                APP_CONFIG.PRE_CACHED_ANIME.unshift(payload);
+            } else {
+                // Fallback TMDB direct lookup for movies
+                try {
+                    const response = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=84177ee9b4f5014e451ec9decaf31bc6`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        payload.name = data.title || fallbackName;
+                        payload.year = (data.release_date || "2026").substring(0, 4);
+                        payload.rating = data.vote_average ? data.vote_average.toFixed(1) : 7.0;
+                        payload.desc = data.overview || "No database overview available.";
+                        if (data.poster_path) {
+                            payload.backup_poster = `https://image.tmdb.org/t/p/w400${data.poster_path}`;
+                        }
+                    }
+                } catch (err) {
+                    console.warn("TMDB database lookup failed. Proceeding with manual fallback parameters.");
+                }
+                APP_CONFIG.PRE_CACHED_MOVIES.unshift(payload);
+            }
+
+            renderCatalogList();
+            selectMediaAsset(payload);
+        }
+
+        // Builds dynamic string values out of operational routing arrays
+        function compileRoutingPayload() {
+            if (!activeMediaItem) return;
+
+            const provider = APP_CONFIG.GATEWAY_PROVIDERS[selectedServerIndex];
+            let requestUrl = "";
+
+            if (currentType === 'tv') {
+                requestUrl = provider.base + provider.tvPattern
+                    .replace("{id}", activeMediaItem.id)
+                    .replace("{s}", currentSeason)
+                    .replace("{e}", currentEpisode);
+            } else {
+                requestUrl = provider.base + provider.moviePattern
+                    .replace("{id}", activeMediaItem.id);
+            }
+
+            console.log("Constructing Dynamic Embed Connection To:", requestUrl);
+            document.getElementById('stream-player').src = requestUrl;
+        }
+    </script>
 </body>
 </html>
